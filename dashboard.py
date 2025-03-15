@@ -51,7 +51,7 @@ class Dashboard(object):
         fig_destinations = px.bar(
             x=top_destinations.index,
             y=top_destinations.values,
-            title="Top IP destinations Addresses"
+            title="Top IP Destination Addresses"
         )
         st.plotly_chart(fig_destinations, use_container_width=True)
 
@@ -61,14 +61,15 @@ class Dashboard(object):
                 values=list(self.__data_frame.columns),
                 fill_color='royalblue',
                 align='left',
-                font=dict(color='white', size=12)
+                font=dict(color='black', size=12)
             ),
             cells=dict(
                 values=[self.__data_frame[col]
                         for col in self.__data_frame.columns],
                 fill_color='lavender',
                 align='left',
-                height=30
+                height=30,
+                font=dict(color='black', size=12)
             )
         )])
 
