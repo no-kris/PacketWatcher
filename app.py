@@ -129,11 +129,11 @@ async def main():
             st.sidebar.info(f"Showing {len(filtered_df)} of {len(df)} packets")
 
             if st.sidebar.button("Reset All Filters"):
-                st.experimental_rerun()
+                st.rerun()
 
             if st.sidebar.button("Clear Data and Upload New File"):
                 st.session_state.file_processed = False
-                st.experimental_rerun()
+                st.rerun()
 
             st.sidebar.header("Navigation")
             page = st.sidebar.radio(
