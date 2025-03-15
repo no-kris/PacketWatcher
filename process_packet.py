@@ -21,7 +21,7 @@ class PacketProcessor(object):
 
     def get_protocol_name(self, protocol_num: int) -> str:
         """Return the protocol name mapped to the protocol_num parameter or OTHER"""
-        return self.__protocol_map.get(protocol_num, f"OTHER{protocol_num}")
+        return self.__protocol_map.get(protocol_num, f"OTHER {protocol_num}")
 
     def get_packet_info(self, packet) -> dict:
         """Return a key:value pair containing inforamtion about the current packet being processed."""
@@ -72,7 +72,7 @@ class PacketProcessor(object):
                         self.__packet_count += 1
                 logging.info(
                     f"Processed {min(i+batch_size, total_packets)}/{total_packets} packets.")
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
             return self.__packet_count
         except Exception as e:
             logging.error(f"Error processing packet", e)
