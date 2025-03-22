@@ -1,4 +1,6 @@
 from scapy.all import IP, UDP, TCP, rdpcap
+from scapy.layers.l2 import Ether
+from scapy.layers.dot11 import Dot11
 import pandas as pd
 from datetime import datetime
 from collections import deque
@@ -46,7 +48,23 @@ class PacketProcessor(object):
                 "dport": packet[UDP].dport
             })
 
+        self.add_mac_address(packet_info, packet)
+
         return packet_info
+
+    def add_mac_address(self, packet_info, packet) -> None:
+        """Insert the mac address to packet inforamtion. 
+           Check whether user is using mac address from Ethernet or WiFi (Dot11)"""
+        if Ether in packet:
+            mac_src, mac_dst = packet[Ether].src, packet[Ether].dst
+        elif Dot11 in packet:
+            mac_src, mac_dst = packet[Dot11].src, packet[Dot11].dst
+        else:
+            mac_src, mac_dst = "Unknown", "Unknown"
+        packet_info.update({
+            "src_mac": mac_src,
+            "dst_mac": mac_dst
+        })
 
     async def read_pcap_file(self, filename):
         """Asynchronously read packets from a pcap file."""

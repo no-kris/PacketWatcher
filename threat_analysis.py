@@ -1,0 +1,66 @@
+import networkx as nx
+from scapy.all import rdpcap, IP, TCP, UDP
+from scapy.layers.l2 import Ether
+from scapy.layers.dot11 import Dot11
+
+pcap = "network_sim.pcap"
+
+
+def get_mac_addresses(packet):
+    if Ether in packet:
+        mac_src, mac_dst = packet[Ether].src, packet[Ether].dst
+    elif Dot11 in packet:
+        mac_src, mac_dst = packet[Dot11].src, packet[Dot11].dst
+    else:
+        mac_src, mac_dst = "Unknown", "Unknown"
+    return mac_src, mac_dst
+
+
+net_graph = nx.MultiDiGraph()
+packets = rdpcap(pcap)
+for packet in packets:
+    if not IP in packet:
+        continue
+    mac_src, mac_dst = get_mac_addresses(packet)
+    ip_src = packet[IP].src
+    ip_dst = packet[IP].dst
+    w = packet[IP].len
+    if TCP in packet:
+        sport = packet[TCP].sport
+        dport = packet[TCP].dport
+    elif UDP in packet:
+        sport = packet[UDP].sport
+        dport = packet[UDP].dport
+    else:
+        continue
+    net_graph.add_edge(
+        *(str(mac_src), str(mac_dst)),
+        ip_src=ip_src,
+        ip_dst=ip_dst,
+        sport=sport,
+        dport=dport,
+        weight=w
+    )
+
+print(len(net_graph.nodes))
+
+
+def protocol_subgraph(G, port):
+    o_edges = [(u, v, d)
+               for u, v, d in G.edges(data=True) if d["dport"] == port]
+    if len(o_edges) < 1:
+        return None
+    subgraph = nx.DiGraph()
+    subgraph.add_edges_from(o_edges)
+    return subgraph
+
+
+print(len(protocol_subgraph(net_graph, 80)))
+
+
+psi = [80, 2503, 55553, 443]
+for proto in psi:
+    dG = protocol_subgraph(net_graph, proto)
+    out_deg = dG.out_degree(weight='weight')
+    sorted_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
+    print(proto, sorted_deg[0])
