@@ -12,11 +12,11 @@ class ThreatAnalyzer(object):
 
     def __init__(self, dataframe: pd.DataFrame):
         self.__df = dataframe
-        self.__protocol_list = self.get_protocol_list()
+        self.__ports_list = self.get_ports_list()
         self.__network_graph = nx.MultiDiGraph()
 
-    def get_protocol_list(self) -> list:
-        """Return a list of protocol ports with high levels of network traffic."""
+    def get_ports_list(self) -> list:
+        """Return a list of ports with high levels of network traffic."""
         common_ports = {80, 443, 53, 22, 3389, 8080}
         if not self.__df.empty and 'dport' in self.__df:
             top_ports = self.__df.groupby(
@@ -45,7 +45,8 @@ class ThreatAnalyzer(object):
 
     def get_highest_weighted_out_degree_for_ports(self):
         """Return a key:value pair where the key represents the protocl and the value represents
-           a tuple containing the mac address of the node and the amount of bytes sent to the protocol."""
+           a tuple containing the mac address of the node and the amount of bytes sent to the 
+           destination network port."""
         highest_out_deg = {}
         for protocol in self.__protocol_list:
             if protocol in self.__df["protocol"]:
