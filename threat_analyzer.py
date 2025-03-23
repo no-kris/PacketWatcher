@@ -45,17 +45,16 @@ class ThreatAnalyzer(object):
 
     def get_highest_weighted_out_degree_for_ports(self):
         """Return a key:value pair where the key represents the protocl and the value represents
-           a tuple containing the mac address of the node and the amount of bytes sent to the 
-           destination network port."""
+           a tuple containing the mac address of the node and the out-degree score for that node."""
         highest_out_deg = {}
-        for protocol in self.__protocol_list:
-            if protocol in self.__df["protocol"]:
-                subgraph = self.create_protocol_subgraph(protocol)
+        for port in self.__ports_list:
+            if port in self.__df["dport"]:
+                subgraph = self.create_protocol_subgraph(port)
                 if subgraph:
                     out_deg = subgraph.out_degree(weight="weight")
                     sorted_deg = sorted(
                         out_deg, key=lambda x: (x[1], x[0]), reverse=True)
-                    highest_out_deg[protocol] = sorted_deg[0]
+                    highest_out_deg[port] = sorted_deg[0]
         return highest_out_deg
 
     def create_protocol_subgraph(self, port: int) -> nx.DiGraph:
@@ -83,7 +82,7 @@ async def main():
     # Create the analyzer with the DataFrame
     threat_analyzer = ThreatAnalyzer(df)
 
-    print(threat_analyzer.get_protocol_list())
+    print(threat_analyzer.get_ports_list())
     threat_analyzer.build_network_graph()
     print(threat_analyzer.get_network_graph_len())
     print(len(threat_analyzer.create_protocol_subgraph(80)))
