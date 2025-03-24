@@ -91,6 +91,17 @@ class ThreatAnalyzer(object):
         subgraph.add_edges_from(o_edges)
         return subgraph
 
+    def find_solicitor_node(self):
+        """Identify the node with the most outbound connections.
+           Returns a tuple containing the solicitor node and its outbound score."""
+        if self.__network_graph:
+            directed_graph = nx.DiGraph()
+            directed_graph.add_edges_from(
+                self.__network_graph.edges(data=True))
+            out_deg = directed_graph.out_degree()
+            out_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
+        return out_deg[0] if out_deg else None
+
 
 async def test_processor_get_df():
     processor = PacketProcessor()
@@ -112,6 +123,7 @@ async def main():
     print(len(threat_analyzer.create_protocol_subgraph(80)))
     print(threat_analyzer.get_highest_weighted_out_degree_for_ports())
     print(threat_analyzer.find_nodes_with_high_traffic())
+    print(threat_analyzer.find_solicitor_node())
 
 if __name__ == '__main__':
     # Run the main async function

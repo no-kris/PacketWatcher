@@ -76,3 +76,10 @@ in_degree_z = stats.zscore(scores)
 outlier_idx = list(np.where(in_degree_z > z_thresh)[0])
 nodes = [in_deg[i][0] for i in outlier_idx]
 print(nodes)
+
+dirG = nx.DiGraph()
+dirG.add_edges_from(net_graph.edges(data=True))
+out_deg = dirG.out_degree()
+out_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
+u, score = out_deg[0]
+print(u, score)
