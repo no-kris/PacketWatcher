@@ -1,6 +1,8 @@
 import asyncio
 import networkx as nx
 import pandas as pd
+import numpy as np
+from scipy import stats
 
 from process_packet import PacketProcessor
 
@@ -14,6 +16,7 @@ class ThreatAnalyzer(object):
         self.__df = dataframe
         self.__ports_list = self.get_ports_list()
         self.__network_graph = nx.MultiDiGraph()
+        self.__z_thresh = stats.norm.ppf(0.95)
 
     def get_ports_list(self) -> list:
         """Return a list of ports with high levels of network traffic."""
@@ -43,9 +46,10 @@ class ThreatAnalyzer(object):
         """Return the number of nodes in the network graph."""
         return len(self.__network_graph.nodes)
 
-    def get_highest_weighted_out_degree_for_ports(self):
-        """Return a key:value pair where the key represents the protocl and the value represents
-           a tuple containing the mac address of the node and the out-degree score for that node."""
+    def get_highest_weighted_out_degree_for_ports(self) -> dict:
+        """Return a key:value pair where the key represents the port number and the value represents
+           a tuple containing the mac address of the node and the out-degree score for that node
+           with the most traffic over the port."""
         highest_out_deg = {}
         for port in self.__ports_list:
             if port in self.__df["dport"]:
@@ -56,6 +60,26 @@ class ThreatAnalyzer(object):
                         out_deg, key=lambda x: (x[1], x[0]), reverse=True)
                     highest_out_deg[port] = sorted_deg[0]
         return highest_out_deg
+
+    def find_nodes_with_high_traffic(self) -> list:
+        """Identify nodes with statistically high incoming traffic across all monitored ports.
+           Return a list of tuples containing the port and outlier nodes."""
+        highest_in_degree = []
+        for port in self.__ports_list:
+            if port not in self.__df["dport"]:
+                continue
+            subgraph = self.create_protocol_subgraph(port)
+            if not subgraph:
+                continue
+            in_degrees = list(subgraph.in_degree(weight="weight"))
+            if len(in_degrees) < 2:
+                continue
+            scores = np.array([v[1] for v in in_degrees])
+            outlier_nodes = [in_degrees[i][0] for i in
+                             np.where(stats.zscore(scores) > self.__z_thresh)[0]]
+            if outlier_nodes:
+                highest_in_degree.append((port, outlier_nodes))
+        return highest_in_degree
 
     def create_protocol_subgraph(self, port: int) -> nx.DiGraph:
         """Create a subgraph that contains only edges of a specified port."""
@@ -87,6 +111,7 @@ async def main():
     print(threat_analyzer.get_network_graph_len())
     print(len(threat_analyzer.create_protocol_subgraph(80)))
     print(threat_analyzer.get_highest_weighted_out_degree_for_ports())
+    print(threat_analyzer.find_nodes_with_high_traffic())
 
 if __name__ == '__main__':
     # Run the main async function

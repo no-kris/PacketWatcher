@@ -2,6 +2,8 @@ import networkx as nx
 from scapy.all import rdpcap, IP, TCP, UDP
 from scapy.layers.l2 import Ether
 from scapy.layers.dot11 import Dot11
+from scipy import stats
+import numpy as np
 
 pcap = "network_sim.pcap"
 
@@ -64,3 +66,13 @@ for proto in psi:
     out_deg = dG.out_degree(weight='weight')
     sorted_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
     print(proto, sorted_deg[0])
+
+
+protoG = protocol_subgraph(net_graph, 80)
+in_deg = list(protoG.in_degree(weight='weight'))
+scores = np.array([v[1] for v in in_deg])
+z_thresh = stats.norm.ppf(0.95)
+in_degree_z = stats.zscore(scores)
+outlier_idx = list(np.where(in_degree_z > z_thresh)[0])
+nodes = [in_deg[i][0] for i in outlier_idx]
+print(nodes)
