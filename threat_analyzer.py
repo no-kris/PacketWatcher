@@ -12,11 +12,26 @@ pcap_file = 'network_sim.pcap'
 class ThreatAnalyzer(object):
     """Class ThreatAnalyzer uses graph theory to extract potential threat information from network traffic."""
 
-    def __init__(self, dataframe: pd.DataFrame):
+    def __init__(self, dataframe: pd.DataFrame, z_thresh=stats.norm.ppf(0.95)):
         self.__df = dataframe
         self.__ports_list = self.get_ports_list()
         self.__network_graph = nx.MultiDiGraph()
-        self.__z_thresh = stats.norm.ppf(0.95)
+        self.__z_thresh = z_thresh
+
+    @property
+    def z_thresh(self):
+        """Return the current z score being used."""
+        return self.__z_thresh
+
+    @z_thresh.setter
+    def z_thresh(self, value):
+        """Set the z score for the z_thresh attribute.
+           Keep it between 90% and 99%."""
+        if not isinstance(value, float):
+            raise ValueError(f"Attribute must be of type {float}")
+        if not (0.90 <= value <= 0.99):
+            raise AssertionError("Value must be less than 1")
+        self.__z_thresh = stats.norm.ppf(value)
 
     def get_ports_list(self) -> list:
         """Return a list of ports with high levels of network traffic."""
@@ -102,6 +117,54 @@ class ThreatAnalyzer(object):
             out_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
         return out_deg[0] if out_deg else None
 
+    def get_exchange_ratios(self) -> list:
+        """Identify the exchange ratios of all nodes in the network graph.
+           The exchange ratio is identified by the ratio of in-degree weight
+           to out-degree weight for a given node.
+           Return a list of tuples containing a node and its exchange ratio score."""
+        if not self.__network_graph:
+            return None
+        result = []
+        for node in self.__network_graph.nodes.keys():
+            out_edges = self.__network_graph.out_edges(node, data=True)
+            in_edges = self.__network_graph.in_edges(node, data=True)
+            out_weight = self.get_out_edges_weight(out_edges)
+            in_weight = self.get_in_edges_weight(in_edges)
+            ier = in_weight / out_weight
+            result.append((node, ier))
+        return result
+
+    def get_out_edges_weight(self, out_edges) -> int:
+        """Return the total weight of a nodes outbound edges.
+           Return 1 if the node does not contain outbound edges to avoid
+           division by zero."""
+        out_w = 1
+        if len(out_edges) > 0:
+            out_w += sum([d["weight"] for _, _, d in out_edges])
+        return out_w
+
+    def get_in_edges_weight(self, in_edges) -> int:
+        """Return the total weight of a nodes inbound edges.
+           Return 1 if the node does not contain inbound edges to avoid
+           division by zero."""
+        in_w = 1
+        if len(in_edges) > 0:
+            in_w += sum([d["weight"] for _, _, d in in_edges])
+        return in_w
+
+    def get_exchange_ratio_outliers(self) -> list:
+        """Identify all nodes with a statistically high information 
+           exchange ratios.
+           Return a list containing tuples of a node and its 
+           information exchange ratio score."""
+        if not self.__network_graph:
+            return None
+        ier_scores = self.get_exchange_ratios()
+        ier_z = stats.zscore([s[1] for s in ier_scores])
+        ier_outliers = [ier_scores[i]
+                        for i in np.where(ier_z > self.__z_thresh)[0]]
+        return ier_outliers
+
 
 async def test_processor_get_df():
     processor = PacketProcessor()
@@ -124,6 +187,7 @@ async def main():
     print(threat_analyzer.get_highest_weighted_out_degree_for_ports())
     print(threat_analyzer.find_nodes_with_high_traffic())
     print(threat_analyzer.find_solicitor_node())
+    print(threat_analyzer.get_exchange_ratio_outliers())
 
 if __name__ == '__main__':
     # Run the main async function

@@ -83,3 +83,29 @@ out_deg = dirG.out_degree()
 out_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
 u, score = out_deg[0]
 print(u, score)
+
+
+def exchange_ratios(G):
+    res = []
+    for u in G.nodes.keys():
+        out_edges = G.out_edges(u, data=True)
+        in_edges = G.in_edges(u, data=True)
+        if len(out_edges) > 0:
+            out_w = 1 + sum([d["weight"] for u, v, d in out_edges])
+        else:
+            out_w = 1
+        if len(in_edges) > 0:
+            in_w = 1 + sum([d["weight"] for u, v, d in in_edges])
+        else:
+            in_w = 1
+        ier = in_w / out_w
+        res.append((u, ier))
+    return sorted(res, key=lambda x: (x[1], x[0]))
+
+
+ier_scores = exchange_ratios(net_graph)
+z_thresh = round(stats.norm.ppf(0.99), 3)
+ier_z = stats.zscore([s[1] for s in ier_scores])
+outlier_idx = list(np.where(ier_z > z_thresh)[0])
+ier_outliers = [ier_scores[i] for i in outlier_idx]
+print(ier_outliers)
