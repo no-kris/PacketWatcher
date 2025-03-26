@@ -115,7 +115,8 @@ class ThreatAnalyzer(object):
                 self.__network_graph.edges(data=True))
             out_deg = directed_graph.out_degree()
             out_deg = sorted(out_deg, key=lambda x: (x[1], x[0]), reverse=True)
-        return out_deg[0] if out_deg else None
+            return out_deg[0]
+        return None
 
     def get_exchange_ratios(self) -> list:
         """Identify the exchange ratios of all nodes in the network graph.

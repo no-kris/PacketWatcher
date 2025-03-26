@@ -6,6 +6,7 @@ import streamlit as st
 
 from dashboard import Dashboard
 from process_packet import PacketProcessor
+from threat_analysis_dashboard import ThreatAnalysisDashboard
 
 st.set_page_config(page_title="Packet Watcher",
                    page_icon="🔍", layout="wide")
@@ -180,7 +181,7 @@ class PacketWatcherApp:
             st.sidebar.header("Navigation")
             page = st.sidebar.radio(
                 "Select View",
-                ["Overview", "Protocol Analysis", "Source/Destination Analysis",
+                ["Overview", "Threat Analysis", "Protocol Analysis", "Source/Destination Analysis",
                  "Timeline Analysis", "Raw Data"]
             )
 
@@ -188,6 +189,10 @@ class PacketWatcherApp:
 
             if page == "Overview":
                 self.show_overview(dashboard)
+
+            elif page == "Threat Analysis":
+                threat_dashboard = ThreatAnalysisDashboard(self.filtered_df)
+                threat_dashboard.run()
 
             elif page == "Protocol Analysis":
                 self.show_protocol_analysis(dashboard)
