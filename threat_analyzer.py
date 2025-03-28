@@ -12,11 +12,15 @@ pcap_file = 'network_sim.pcap'
 class ThreatAnalyzer(object):
     """Class ThreatAnalyzer uses graph theory to extract potential threat information from network traffic."""
 
-    def __init__(self, dataframe: pd.DataFrame, z_thresh=stats.norm.ppf(0.95)):
+    def __init__(self, dataframe: pd.DataFrame):
         self.__df = dataframe
         self.__ports_list = self.get_ports_list()
         self.__network_graph = nx.MultiDiGraph()
-        self.__z_thresh = z_thresh
+        self.__z_thresh = round(stats.norm.ppf(0.95), 3)
+
+    @property
+    def network_graph(self):
+        return self.__network_graph
 
     @property
     def z_thresh(self):
@@ -133,7 +137,7 @@ class ThreatAnalyzer(object):
             in_weight = self.get_in_edges_weight(in_edges)
             ier = in_weight / out_weight
             result.append((node, ier))
-        return result
+        return sorted(result, key=lambda x: (x[1], x[0]))
 
     def get_out_edges_weight(self, out_edges) -> int:
         """Return the total weight of a nodes outbound edges.
@@ -153,17 +157,19 @@ class ThreatAnalyzer(object):
             in_w += sum([d["weight"] for _, _, d in in_edges])
         return in_w
 
-    def get_exchange_ratio_outliers(self) -> list:
+    def get_exchange_ratio_outliers(self, z_score=None) -> list:
         """Identify all nodes with a statistically high information 
            exchange ratios.
            Return a list containing tuples of a node and its 
            information exchange ratio score."""
         if not self.__network_graph:
             return None
+        if z_score is None:
+            z_score = self.z_thresh
         ier_scores = self.get_exchange_ratios()
         ier_z = stats.zscore([s[1] for s in ier_scores])
-        ier_outliers = [ier_scores[i]
-                        for i in np.where(ier_z > self.__z_thresh)[0]]
+        outlier_idx = list(np.where(ier_z > z_score)[0])
+        ier_outliers = [ier_scores[i] for i in outlier_idx]
         return ier_outliers
 
 

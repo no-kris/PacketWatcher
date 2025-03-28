@@ -54,9 +54,7 @@ class ThreatAnalysisDashboard(object):
 
     def show_ports_analysis(self):
         """Visualize the top active ports and the nodes on those ports."""
-        st.subheader("Top Active Ports Analysis")
-        st.metric("Z-Score Threshold",
-                  f"{self.__threat_analyzer.z_thresh:.2f}")
+        st.subheader("Top Active Ports")
         port_out_degrees = self.__threat_analyzer.get_highest_weighted_out_degree_for_ports()
         if port_out_degrees:
             port_df = pd.DataFrame.from_dict(
@@ -81,8 +79,38 @@ class ThreatAnalysisDashboard(object):
     def show_traffic_analysis(self):
         pass
 
+    def _get_user_defined_z_score(self):
+        """Helper method for getting a user defined z score."""
+        z_score = st.number_input(
+            "Z-score to use... (between 0.90 and 0.99)", min_value=0.90, max_value=0.99)
+        return float(z_score)
+
     def show_exchange_ratios(self):
-        pass
+        """Display a scatter plot showing nodes and their information exchange ratio."""
+        st.subheader("Information Exchange Ratio Analysis")
+        z_score = self._get_user_defined_z_score()
+        exchange_outliers = self.__threat_analyzer.get_exchange_ratio_outliers(
+            z_score=z_score)
+
+        if exchange_outliers:
+            exchange_df = pd.DataFrame(
+                exchange_outliers,
+                columns=['Node', 'Exchange Ratio']
+            )
+            fig = px.scatter(
+                exchange_df,
+                x='Node',
+                y='Exchange Ratio',
+                color='Exchange Ratio',
+                title='Node Information Exchange Ratios',
+                labels={'Exchange Ratio': 'Ratio of In/Out Traffic',
+                        'Node Address': 'Node'}
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.subheader("Exchange Ratio Outliers")
+            st.dataframe(exchange_df)
+        else:
+            st.info("No unusual information exchange patterns detected.")
 
     def show_network_graph(self):
         pass
